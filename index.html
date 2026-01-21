@@ -32,23 +32,47 @@
       background: rgba(8, 8, 16, 0.78);
       backdrop-filter: blur(10px);
     }
-    #panel{
-      width:min(980px, 92vw);
-      border-radius:18px;
-      overflow:hidden;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 20px 70px rgba(0,0,0,0.55);
-      font-family: system-ui, -apple-system, sans-serif;
-      color: #eaeaea;
-    }
+/* overlay 자체는 그대로 두되, 패널이 화면 높이를 넘지 않게 */
+#panel{
+  width:min(980px, 92vw);
+  max-height: 92vh;              /* ✅ 화면 안에 들어오게 */
+  display: flex;                 /* ✅ 위(미디어) + 아래(텍스트) 세로 레이아웃 */
+  flex-direction: column;
+  border-radius:18px;
+  overflow:hidden;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 20px 70px rgba(0,0,0,0.55);
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #eaeaea;
+}
 
-    #mediaWrap{
-      background:#000;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
+/* 위쪽 미디어 영역은 내용에 맞게 줄어들 수 있게 */
+#mediaWrap{
+  background:#000;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex: 0 0 auto;                /* ✅ 미디어는 고정/내용 기반 */
+}
+
+/* 설명 영역은 길면 여기만 스크롤 */
+#meta{
+  padding: 14px 16px 18px 16px;
+  overflow: auto;                /* ✅ 텍스트 길면 스크롤 */
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;                /* ✅ 남는 공간을 차지 */
+}
+
+/* (선택) 긴 문단이 잘 보이게 줄 간격/여백 */
+#workDesc{
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(234,234,234,0.80);
+  white-space: pre-line;
+}
+
 
     /* YouTube iframe */
     #ytFrame{

@@ -116,7 +116,7 @@
       "title": "Daydream",
       "file": "daydream.MP4",
       "thumb": "daydream.jpg",
-      "youtube": "https://youtube.com/shorts/DY3F4bKmerg",
+      "youtube": "DY3F4bKmerg",
       "description": "Daydream (2023) is a short video based on dreamlike ballerina imagery generated through Stable Diffusion. Using prompt-driven generation and iterative experimentation, I created multiple character variations and visual styles that emphasize grace, softness, and motion.\n\nThe work extends beyond static generation by applying real-time transformation to the images. Visuals are dynamically altered in response to music or user input, allowing the piece to evolve as a responsive experience rather than a fixed sequence.\n\nBy combining AI image synthesis with live visual modulation, Daydream examines how machine-generated imagery can support poetic movement studies, and how digital tools can blur boundaries between the organic aesthetics of the human form and computational reconstruction."
     },
 
@@ -157,7 +157,7 @@
       "file": "machine_signal.mp4",
       "thumb": "machine_signal.jpg",
       "youtube": "siabP6Wx0C0",
-      "description": "Machine Signal explores the contrast between our embodied existence in nature and our constant interaction with digital devices, focusing on the forms and movements of the human body.\n\nIn response, I produced a bone-like form through 3D printing, drawing from skeletal motion and bodily geometry. The wiring of digital devices is reimagined as veins, proposing a merged metaphor where technological infrastructure becomes an extension of the human body.\n\nPresented across multiple screens, the work uses a distributed display approach to intensify immersion and invites viewers to reflect on how digital systems are increasingly intertwined with how we move, perceive, and occupy space."
+      "description": "Machine Signal (2023) explores the contrast between our embodied existence in nature and our constant interaction with digital devices, focusing on the forms and movements of the human body.\n\nIn response, I produced a bone-like form through 3D printing, drawing from skeletal motion and bodily geometry. The wiring of digital devices is reimagined as veins, proposing a merged metaphor where technological infrastructure becomes an extension of the human body.\n\nPresented across multiple screens, the work uses a distributed display approach to intensify immersion and invites viewers to reflect on how digital systems are increasingly intertwined with how we move, perceive, and occupy space."
     },
 
     {
@@ -166,6 +166,7 @@
       "title": "Yanya X Seonjoo",
       "file": "yanya.mov",
       "thumb": "yanya.jpg",
+      "youtube": "TjGPkf73Nfo",
       "description": "This collaborative video was created with Central Saint Martins MA Womenswear designer Yanya Cheng. Through generative methods, I reinterpreted one garment from her collection within a digital environment.\n\nYanya’s work draws from AI algorithms and pixel-based imagery, using straight lines and angular shapes to emphasize recurring rectangular motifs. I translated these qualities into a consistent digital visual structure, where elements are deconstructed and reassembled in real time.\n\nBy shifting the garment from a physical object into a computational form, the project highlights fashion as a transformable system and proposes how digital tools can expand design language through dynamic reconfiguration."
     },
 
