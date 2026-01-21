@@ -32,47 +32,30 @@
       background: rgba(8, 8, 16, 0.78);
       backdrop-filter: blur(10px);
     }
-/* overlay 자체는 그대로 두되, 패널이 화면 높이를 넘지 않게 */
-#panel{
-  width:min(980px, 92vw);
-  max-height: 92vh;              /* ✅ 화면 안에 들어오게 */
-  display: flex;                 /* ✅ 위(미디어) + 아래(텍스트) 세로 레이아웃 */
-  flex-direction: column;
-  border-radius:18px;
-  overflow:hidden;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 20px 70px rgba(0,0,0,0.55);
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #eaeaea;
-}
 
-/* 위쪽 미디어 영역은 내용에 맞게 줄어들 수 있게 */
-#mediaWrap{
-  background:#000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex: 0 0 auto;                /* ✅ 미디어는 고정/내용 기반 */
-}
+    /* ✅ panel is column layout, never taller than viewport */
+    #panel{
+      width:min(980px, 92vw);
+      max-height: 92vh;
+      display:flex;
+      flex-direction:column;
+      border-radius:18px;
+      overflow:hidden;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 20px 70px rgba(0,0,0,0.55);
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #eaeaea;
+    }
 
-/* 설명 영역은 길면 여기만 스크롤 */
-#meta{
-  padding: 14px 16px 18px 16px;
-  overflow: auto;                /* ✅ 텍스트 길면 스크롤 */
-  -webkit-overflow-scrolling: touch;
-  flex: 1 1 auto;                /* ✅ 남는 공간을 차지 */
-}
-
-/* (선택) 긴 문단이 잘 보이게 줄 간격/여백 */
-#workDesc{
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.65;
-  color: rgba(234,234,234,0.80);
-  white-space: pre-line;
-}
-
+    /* media area stays content-based */
+    #mediaWrap{
+      background:#000;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      flex: 0 0 auto;
+    }
 
     /* YouTube iframe */
     #ytFrame{
@@ -83,6 +66,7 @@
       background:#000;
     }
 
+    /* Local video (optional fallback) */
     #workVideo{
       width:100%;
       height:auto;
@@ -102,9 +86,16 @@
       -webkit-user-drag: none;
     }
 
-    #meta{ padding: 14px 16px 18px 16px; }
+    /* ✅ text area scrolls if long */
+    #meta{
+      padding: 14px 16px 18px 16px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1 1 auto;
+      background: rgba(0,0,0,0.00);
+    }
     #workTitle{ margin: 0 0 6px 0; font-size: 18px; font-weight: 700; }
-    #workDesc{ margin: 0; font-size: 14px; line-height: 1.55; color: rgba(234,234,234,0.80); white-space: pre-line; }
+    #workDesc{ margin: 0; font-size: 14px; line-height: 1.65; color: rgba(234,234,234,0.80); white-space: pre-line; }
 
     #closeBtn{
       position: fixed; right: 16px; top: 16px; z-index: 40;
@@ -175,7 +166,6 @@
   <div id="overlay">
     <div id="panel">
       <div id="mediaWrap">
-
         <!-- YouTube -->
         <iframe
           id="ytFrame"
@@ -197,6 +187,7 @@
 
         <img id="workImage" alt="" draggable="false" />
       </div>
+
       <div id="meta">
         <h2 id="workTitle"></h2>
         <p id="workDesc"></p>
@@ -266,8 +257,37 @@
       workImage.style.display = "none";
     }
 
-    function toYouTubeEmbed(id) {
-      // privacy-friendly domain
+    // ✅ accepts either full URL or just ID
+    function getYouTubeId(input) {
+      if (!input) return null;
+      const s = String(input).trim();
+
+      // Already an ID (11 chars)
+      if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+
+      try {
+        const u = new URL(s);
+        const host = u.hostname.replace("www.", "");
+        if (host === "youtu.be") return u.pathname.replace("/", "").slice(0, 11);
+        if (host.includes("youtube.com")) {
+          // watch?v=
+          const v = u.searchParams.get("v");
+          if (v) return v.slice(0, 11);
+          // shorts/<id>
+          const m = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+          if (m) return m[1];
+          // embed/<id>
+          const e = u.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+          if (e) return e[1];
+        }
+      } catch (e) {}
+
+      return null;
+    }
+
+    function toYouTubeEmbed(input) {
+      const id = getYouTubeId(input);
+      if (!id) return "";
       return "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1";
     }
 
@@ -284,8 +304,9 @@
         workImage.style.display = "block";
       } else {
         // Prefer YouTube if provided
-        if (work.youtube) {
-          ytFrame.src = toYouTubeEmbed(work.youtube);
+        const ytId = getYouTubeId(work.youtube);
+        if (ytId) {
+          ytFrame.src = toYouTubeEmbed(ytId);
           ytFrame.style.display = "block";
         } else {
           // fallback: local mp4/mov (only if you still have it)
@@ -302,6 +323,10 @@
       closeBtn.style.display = "block";
       isOverlayOpen = true;
       focusedCard = card;
+
+      // ✅ scroll text to top each time
+      const meta = document.getElementById("meta");
+      if (meta) meta.scrollTop = 0;
     }
 
     function closeOverlay() {
