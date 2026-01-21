@@ -8,6 +8,7 @@
   <style>
     html, body { margin:0; height:100%; overflow:hidden; background:#0b0b16; }
 
+    /* canvas fade-in */
     canvas{
       display:block;
       opacity:0;
@@ -47,6 +48,7 @@
       color: #eaeaea;
     }
 
+    /* media area stays content-based */
     #mediaWrap{
       background:#000;
       display:flex;
@@ -55,6 +57,7 @@
       flex: 0 0 auto;
     }
 
+    /* YouTube iframe */
     #ytFrame{
       width:100%;
       aspect-ratio: 16 / 9;
@@ -63,6 +66,7 @@
       background:#000;
     }
 
+    /* Local video fallback */
     #workVideo{
       width:100%;
       height:auto;
@@ -88,33 +92,35 @@
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       flex: 1 1 auto;
-      background: rgba(0,0,0,0.00); /* (원하면 #000 으로 바꾸면 텍스트 영역도 검정) */
+
+      /* ✅ 스크롤 영역 배경 (여기가 안 바뀌면 이 값을 더 진하게 올리면 됨) */
+      background: rgba(0,0,0,0.65);
     }
 
-    /* ✅ Scrollbar styling (Chrome/Safari/Edge) */
-    #meta::-webkit-scrollbar{
-      width: 10px;
-    }
-    #meta::-webkit-scrollbar-track{
-      background: #000; /* ✅ 트랙(바탕) 완전 검정 */
-    }
+    /* ===== Scrollbar styling (Chrome/Safari/Edge) ===== */
+    #meta::-webkit-scrollbar{ width: 10px; }
+    #meta::-webkit-scrollbar-track{ background: rgba(0,0,0,0.85); }
     #meta::-webkit-scrollbar-thumb{
-      background: rgba(0,0,0,0.9);
-      border-radius: 999px;
-      border: 2px solid rgba(255,255,255,0.08);
-    }
-    #meta::-webkit-scrollbar-thumb:hover{
       background: rgba(0,0,0,1);
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.10);
     }
+    #meta::-webkit-scrollbar-thumb:hover{ background: rgba(0,0,0,1); }
 
-    /* ✅ Firefox */
+    /* ===== Firefox ===== */
     #meta{
       scrollbar-width: thin;
-      scrollbar-color: rgba(0,0,0,0.9) #000; /* thumb / track */
+      scrollbar-color: rgba(0,0,0,1) rgba(0,0,0,0.85);
     }
 
     #workTitle{ margin: 0 0 6px 0; font-size: 18px; font-weight: 700; }
-    #workDesc{ margin: 0; font-size: 14px; line-height: 1.65; color: rgba(234,234,234,0.80); white-space: pre-line; }
+    #workDesc{
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(234,234,234,0.80);
+      white-space: pre-line;
+    }
 
     #closeBtn{
       position: fixed; right: 16px; top: 16px; z-index: 40;
@@ -131,6 +137,7 @@
       backdrop-filter: blur(8px);
     }
 
+    /* Loader (black screen only) */
     #loader{
       position: fixed;
       inset: 0;
@@ -184,6 +191,7 @@
   <div id="overlay">
     <div id="panel">
       <div id="mediaWrap">
+        <!-- YouTube -->
         <iframe
           id="ytFrame"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -191,6 +199,7 @@
           referrerpolicy="strict-origin-when-cross-origin"
         ></iframe>
 
+        <!-- Local video (optional fallback) -->
         <video
           id="workVideo"
           controls
@@ -216,6 +225,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
   <script>
+    // ================= Loader helpers =================
     const loader = document.getElementById("loader");
     const loaderTextEl = document.getElementById("loaderText");
     const LOADER_LINE = "Now you’re entering my mindspace...";
@@ -241,6 +251,7 @@
       });
     }
 
+    // -------- Overlay UI --------
     const overlay = document.getElementById("overlay");
     const closeBtn = document.getElementById("closeBtn");
     const workVideo = document.getElementById("workVideo");
@@ -257,33 +268,41 @@
     let focusedCard = null;
 
     function resetMedia() {
+      // local video
       try { workVideo.pause(); } catch(e){}
       workVideo.removeAttribute("src");
       workVideo.load();
       workVideo.style.display = "none";
 
+      // youtube
       ytFrame.removeAttribute("src");
       ytFrame.style.display = "none";
 
+      // image
       workImage.removeAttribute("src");
       workImage.style.display = "none";
     }
 
-    // (유튜브 URL/ID 둘 다 받게 해둠 — ID만 넣어도 그대로 작동)
+    // ✅ accepts either full URL or just ID
     function getYouTubeId(input) {
       if (!input) return null;
       const s = String(input).trim();
+
+      // Already an ID (11 chars)
       if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
 
       try {
         const u = new URL(s);
         const host = u.hostname.replace("www.", "");
         if (host === "youtu.be") return u.pathname.replace("/", "").slice(0, 11);
+
         if (host.includes("youtube.com")) {
           const v = u.searchParams.get("v");
           if (v) return v.slice(0, 11);
+
           const m = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
           if (m) return m[1];
+
           const e = u.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
           if (e) return e[1];
         }
@@ -317,6 +336,8 @@
           workVideo.src = work.src;
           workVideo.currentTime = 0;
           workVideo.style.display = "block";
+          workVideo.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
+          workVideo.setAttribute("disablePictureInPicture", "");
           workVideo.play().catch(()=>{});
         }
       }
@@ -326,6 +347,7 @@
       isOverlayOpen = true;
       focusedCard = card;
 
+      // ✅ scroll text to top each time
       if (metaEl) metaEl.scrollTop = 0;
     }
 
@@ -345,6 +367,7 @@
       if (e.key === "Escape" && isOverlayOpen) closeOverlay();
     });
 
+    // -------- Fallback title texture --------
     function makeTitleTexture(title) {
       const c = document.createElement("canvas");
       c.width = 512; c.height = 288;
@@ -376,9 +399,12 @@
       return tex;
     }
 
+    // -------- MAIN INIT --------
     (async function init(){
+      // 0) typing first
       await typeText(loaderTextEl, LOADER_LINE, 90);
 
+      // 1) Load manifest (root manifest.json)
       let manifest;
       try {
         const res = await fetch("manifest.json", { cache: "no-store" });
@@ -393,6 +419,7 @@
       const priority = Array.isArray(manifest.priority) ? manifest.priority : [];
       const items    = Array.isArray(manifest.items) ? manifest.items : [];
 
+      // 2) Build works array
       const works = items.map(it => {
         const type = (it.type || "video").toLowerCase();
         const file = it.file || "";
@@ -417,8 +444,10 @@
         return;
       }
 
+      // priority index
       const prIndex = new Map(priority.map((id, i) => [id, i]));
 
+      // priorityWorks / otherWorks
       const priorityWorks = [];
       const otherWorks = [];
       for (const w of works) {
@@ -427,6 +456,7 @@
       }
       priorityWorks.sort((a,b) => prIndex.get(a.id) - prIndex.get(b.id));
 
+      // 3) Scene
       const scene = new THREE.Scene();
       scene.fog = new THREE.Fog(0x0b0b16, 15, 180);
 
@@ -440,6 +470,7 @@
 
       scene.add(new THREE.AmbientLight(0xffffff, 1));
 
+      // placement parameters
       const CARD_COUNT    = Math.max(works.length, 90);
 
       const FRONT_Z       = 15;
@@ -447,9 +478,6 @@
       const INNER_R       = 25;
       const OUTER_R       = 60;
       const MIN_CAM_DIST  = 12;
-
-      // ✅ 랜덤 카드가 priority보다 앞(카메라쪽)에 못 오도록 “뒤쪽 한계선” 추가
-      const BACK_Z_MAX = FRONT_Z - 6;  // 숫자 더 크게(예: -10) 하면 더 확실히 뒤로 감
 
       function randomInShell(r1, r2) {
         const a = Math.min(r1, r2);
@@ -470,18 +498,15 @@
       }
 
       function safeRandomPos() {
-        for (let tries = 0; tries < 120; tries++) {
+        for (let tries = 0; tries < 60; tries++) {
           const p = randomInShell(INNER_R, OUTER_R);
           const d = camera.position.distanceTo(p);
-
-          // ✅ 핵심: random 카드는 FRONT_Z보다 “뒤쪽”에만 배치
-          if (d > MIN_CAM_DIST && p.z < BACK_Z_MAX) return p;
+          if (d > MIN_CAM_DIST && p.z < (camera.position.z - 2)) return p;
         }
-        // fallback도 뒤쪽으로 고정
         return new THREE.Vector3(
           (Math.random()*2-1) * OUTER_R,
           (Math.random()*2-1) * OUTER_R * 0.6,
-          BACK_Z_MAX - 8
+          0
         );
       }
 
@@ -515,25 +540,23 @@
         return mat;
       }
 
+      // 4) Cards
       const cards = [];
 
-      // priority + 앞쪽에 조금 섞기(원치 않으면 0으로)
       const FRONT_MIX_EXTRA = Math.min(10, otherWorks.length);
 
-      const mixed = otherWorks.slice(0);
-      for (let i = mixed.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        [mixed[i], mixed[j]] = [mixed[j], mixed[i]];
-      }
+      // ✅ priority 먼저, 그 다음 나머지 = 모든 작품 최소 1번 보장
+      const orderedWorks = priorityWorks.concat(otherWorks);
 
-      const frontGroup = priorityWorks.concat(mixed.slice(0, FRONT_MIX_EXTRA));
+      // ✅ 앞에 확정 배치할 개수(=priority 전부 + extra 몇 개)
+      const frontCount = Math.min(priorityWorks.length + FRONT_MIX_EXTRA, orderedWorks.length);
 
       function pickRandomWork() {
         const p = Math.random();
         if (priorityWorks.length && p < 0.35) {
           return priorityWorks[(Math.random() * priorityWorks.length) | 0];
         }
-        return works[(Math.random() * works.length) | 0];
+        return orderedWorks[(Math.random() * orderedWorks.length) | 0];
       }
 
       function frontPos(index){
@@ -555,14 +578,17 @@
       }
 
       for (let i = 0; i < CARD_COUNT; i++){
-        const work = (i < frontGroup.length) ? frontGroup[i] : pickRandomWork();
+        // ✅ 1) orderedWorks 전체를 먼저 한 번씩 생성
+        // ✅ 2) 남는 카드만 랜덤으로 채움
+        const work = (i < orderedWorks.length) ? orderedWorks[i] : pickRandomWork();
         const mat  = createMaterial(work);
 
         const w = 6.5 + Math.random() * 6.5;
         const h = w * (9/16);
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
 
-        const p = (i < frontGroup.length) ? frontPos(i) : safeRandomPos();
+        // ✅ frontCount까지는 앞쪽 배치, 그 이후는 랜덤
+        const p = (i < frontCount) ? frontPos(i) : safeRandomPos();
         mesh.position.copy(p);
 
         const isPriority = prIndex.has(work.id);
@@ -584,6 +610,7 @@
       document.body.classList.add("revealed");
       setTimeout(hideLoader, 700);
 
+      // 5) Look control (drag)
       let yaw = 0, pitch = 0;
       let dragging = false;
       let lastX = 0, lastY = 0;
@@ -617,6 +644,7 @@
         pitch = Math.max(-limit, Math.min(limit, pitch));
       });
 
+      // 6) Movement + trackpad scroll
       const keys = new Set();
       window.addEventListener("keydown", e => keys.add(e.key.toLowerCase()));
       window.addEventListener("keyup",   e => keys.delete(e.key.toLowerCase()));
@@ -661,6 +689,7 @@
         } else scrollVel = 0;
       }
 
+      // 7) Click (raycaster)
       const raycaster = new THREE.Raycaster();
       const mouseNDC = new THREE.Vector2();
 
@@ -680,6 +709,7 @@
         openWork(hits[0].object);
       });
 
+      // 8) Hover
       const pointer = { x: 0, y: 0 };
       let hoverCard = null;
 
@@ -696,6 +726,7 @@
         hoverCard = hits.length ? hits[0].object : null;
       }
 
+      // 9) Animate
       const camForward = new THREE.Vector3();
 
       function animate(){
@@ -712,6 +743,7 @@
           const s = m.userData.seed;
           const base = m.userData.base;
 
+          // drift
           const x = base.x + Math.sin(t * 0.7 + s) * 0.45;
           const y = base.y + Math.cos(t * 0.6 + s) * 0.38;
           const z = base.z + Math.sin(t * 0.5 + s) * 0.30;
@@ -769,6 +801,7 @@
       });
 
       console.log("Loaded works:", works.length, "priority:", priority);
+      console.log("Ordered works:", orderedWorks.map(w => w.id));
     })();
   </script>
 </body>
