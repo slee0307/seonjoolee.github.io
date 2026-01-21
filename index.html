@@ -86,32 +86,47 @@
       -webkit-user-drag: none;
     }
 
-    /* ✅ text area scrolls if long */
-    #meta{
-      padding: 14px 16px 18px 16px;
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-      flex: 1 1 auto;
+   /* ✅ text area */
+#meta{
+  padding: 14px 16px 18px 16px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
 
-      /* ✅ 스크롤 영역 배경 (여기가 안 바뀌면 이 값을 더 진하게 올리면 됨) */
-      background: rgba(0,0,0,0.65);
-    }
+  /* 배경은 검정 유지 */
+  background: rgba(0,0,0,0.65);
+}
 
-    /* ===== Scrollbar styling (Chrome/Safari/Edge) ===== */
-    #meta::-webkit-scrollbar{ width: 10px; }
-    #meta::-webkit-scrollbar-track{ background: rgba(0,0,0,0.85); }
-    #meta::-webkit-scrollbar-thumb{
-      background: rgba(0,0,0,1);
-      border-radius: 999px;
-      border: 2px solid rgba(255,255,255,0.10);
-    }
-    #meta::-webkit-scrollbar-thumb:hover{ background: rgba(0,0,0,1); }
+/* ===== Scrollbar styling (Chrome/Safari/Edge) ===== */
+#meta::-webkit-scrollbar{
+  width: 10px;
+}
 
-    /* ===== Firefox ===== */
-    #meta{
-      scrollbar-width: thin;
-      scrollbar-color: rgba(0,0,0,1) rgba(0,0,0,0.85);
-    }
+#meta::-webkit-scrollbar-track{
+  /* 트랙은 아주 살짝만 보이게 */
+  background: rgba(255,255,255,0.06);
+}
+
+#meta::-webkit-scrollbar-thumb{
+  /* ✅ 엄지(스크롤 바)를 연한 반투명 회색으로 */
+  background: rgba(255,255,255,0.28);
+  border-radius: 999px;
+
+  /* 트랙과 구분되게 얇은 테두리 */
+  border: 2px solid rgba(0,0,0,0.55);
+}
+
+#meta::-webkit-scrollbar-thumb:hover{
+  background: rgba(255,255,255,0.40);
+}
+
+/* ===== Firefox ===== */
+#meta{
+  scrollbar-width: thin;
+  /* thumb / track 순서 */
+  scrollbar-color: rgba(255,255,255,0.28) rgba(255,255,255,0.06);
+}
+
 
     #workTitle{ margin: 0 0 6px 0; font-size: 18px; font-weight: 700; }
     #workDesc{
