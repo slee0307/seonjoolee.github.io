@@ -130,15 +130,8 @@
       "description": "Gazer (2023) is a moving-image work that reinterprets the design language of British fashion designer Jean Muir. The project constructs a palette around her signature blue, a color she frequently used to express calmness, elegance, and timeless beauty. For Muir, blue served as an understated statement that directed attention toward structure and form rather than ornament.\n\nIn response, I translated garment details and jewelry motifs into a digital visual grammar. Shapes derived from patterns and accessories were reconstructed from 2D references into 3D space, emphasizing a sculptural interpretation of the original fashion imagery.\n\nThe work was presented in an immersive setting using glass beads placed within a dark booth, creating spatial depth and enhancing the sense of dimensional movement."
     },
 
-    {
-      "id": "image_floating",
-      "type": "video",
-      "title": "Image Floating",
-      "file": "image_floating.mp4",
-      "thumb": "image_floating.jpg",
-      "youtube": "t1wkaJYJ6fI",
-      "description": "Image Floating is a moving-image study that experiments with the sensation of images drifting through space rather than staying fixed on a flat screen.\n\nBy tuning framing, depth, and motion, the work explores moments when an image begins to feel spatial—present as an object that occupies space, not only as something viewed."
-    },
+    
+      
 
     {
       "id": "looking_glass",
