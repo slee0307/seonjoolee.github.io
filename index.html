@@ -224,7 +224,8 @@
     Drag = look (360°)<br/>
     WASD = move, Q/E = down/up<br/>
     Trackpad scroll = forward/back<br/>
-    Click a card = open
+    Click a card = open<br/>
+    Pinch gesture = toggle card alignment
   </div>
   
   <div id="nav">
@@ -271,6 +272,8 @@
   <div id="closeBtn">Close (Esc)</div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     // ================= Loader helpers =================
@@ -308,6 +311,8 @@
     const workTitle = document.getElementById("workTitle");
     const workDesc  = document.getElementById("workDesc");
     const metaEl    = document.getElementById("meta");
+    const PINCH_ON_THRESHOLD = 0.045;
+    const PINCH_OFF_THRESHOLD = 0.07;
     
 
    // ===== NAV (여기에 넣기) =====
@@ -347,6 +352,18 @@
 
     let isOverlayOpen = false;
     let focusedCard = null;
+    let isPinching = false;
+    let handTrackingActive = false;
+    let hands = null;
+    let mpCamera = null;
+    let webcamVideo = null;
+    let mainCanvas = null;
+    let pinchDistanceSmoothed = 0.12;
+    let missingHandFrames = 0;
+    let pinchOnFrames = 0;
+    let pinchOffFrames = 0;
+    let wasPinching = false;
+    let isAlignedLocked = false;
 
     function resetMedia() {
       // local video
@@ -454,6 +471,7 @@ function openWork(card) {
       isOverlayOpen = false;
       resetMedia();
       focusedCard = null;
+      requestAnimationFrame(() => mainCanvas?.focus?.());
     }
 
     overlay.addEventListener("click", (e) => {
@@ -563,7 +581,10 @@ function openWork(card) {
       const renderer = new THREE.WebGLRenderer({ antialias:true });
       renderer.setSize(innerWidth, innerHeight);
       renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.domElement.tabIndex = 0;
+      renderer.domElement.style.outline = "none";
       document.body.appendChild(renderer.domElement);
+      mainCanvas = renderer.domElement;
 
       scene.add(new THREE.AmbientLight(0xffffff, 1));
 
@@ -639,6 +660,11 @@ function openWork(card) {
 
      // 4) Cards
 const cards = [];
+const alignCards = [];
+let maxCardWidth = 0;
+let maxCardHeight = 0;
+let alignedCardScale = 1;
+const ALIGN_SCALE_BOOST = 1.22;
 
 const FRONT_MIX_EXTRA = Math.min(10, otherWorks.length);
 
@@ -693,6 +719,8 @@ if (cemIndex > -1) {
         const w = 6.5 + Math.random() * 6.5;
         const h = w * (9/16);
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+        maxCardWidth = Math.max(maxCardWidth, w);
+        maxCardHeight = Math.max(maxCardHeight, h);
 
         // ✅ frontCount까지는 앞쪽 배치, 그 이후는 랜덤
         const p = (i < frontCount) ? frontPos(i) : safeRandomPos();
@@ -714,8 +742,159 @@ if (cemIndex > -1) {
         cards.push(mesh);
       }
 
+      const seenWorkIds = new Set();
+      for (const m of cards) {
+        const workId = m.userData.work?.id || "";
+        if (!seenWorkIds.has(workId)) {
+          seenWorkIds.add(workId);
+          m.userData.isAlignDuplicate = false;
+          alignCards.push(m);
+        } else {
+          m.userData.isAlignDuplicate = true;
+        }
+      }
+
+      function setLineAlignedTargets() {
+        const count = alignCards.length;
+        if (!count) return;
+
+        const cols = Math.max(7, Math.min(16, Math.ceil(Math.sqrt(count * 1.2))));
+        const rows = Math.ceil(count / cols);
+        const distance = 30;
+
+        const baseXSpacing = Math.max(7.4, maxCardWidth * 1.08);
+        const baseYSpacing = Math.max(4.4, maxCardHeight * 1.12);
+
+        // Fit all cards inside current camera frustum at align distance.
+        const vFov = THREE.MathUtils.degToRad(camera.fov);
+        const viewHeight = 2 * Math.tan(vFov * 0.5) * distance;
+        const viewWidth = viewHeight * camera.aspect;
+
+        const rawGridWidth = (cols - 1) * baseXSpacing + maxCardWidth;
+        const rawGridHeight = (rows - 1) * baseYSpacing + maxCardHeight;
+        const fitScale = Math.min(
+          (viewWidth * 0.9) / Math.max(rawGridWidth, 0.0001),
+          (viewHeight * 0.86) / Math.max(rawGridHeight, 0.0001),
+          1
+        );
+        const boostedScale = fitScale * ALIGN_SCALE_BOOST;
+        const safeMaxScale = Math.min(
+          (viewWidth * 0.82) / Math.max(rawGridWidth, 0.0001),
+          (viewHeight * 0.8) / Math.max(rawGridHeight, 0.0001),
+          1.22
+        );
+        alignedCardScale = THREE.MathUtils.clamp(Math.min(boostedScale, safeMaxScale), 0.34, 1.22);
+
+        const xSpacing = baseXSpacing * alignedCardScale;
+        const ySpacing = baseYSpacing * alignedCardScale;
+
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+        const center = camera.position.clone().add(forward.multiplyScalar(distance));
+
+        for (let i = 0; i < count; i++) {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const colOffset = (col - (cols - 1) * 0.5) * xSpacing;
+          const rowOffset = ((rows - 1) * 0.5 - row) * ySpacing;
+
+          const target = center.clone()
+            .add(right.clone().multiplyScalar(colOffset))
+            .add(up.clone().multiplyScalar(rowOffset));
+          alignCards[i].userData.target.copy(target);
+        }
+      }
+
+      function updatePinchState(results) {
+        const MISS_FRAME_TOLERANCE = 8;
+        const ON_HOLD_FRAMES = 3;
+        const OFF_HOLD_FRAMES = 5;
+        const hand = results?.multiHandLandmarks?.[0];
+        if (hand) {
+          missingHandFrames = 0;
+          const thumbTip = hand[4];
+          const indexTip = hand[8];
+          if (thumbTip && indexTip) {
+            const dx = thumbTip.x - indexTip.x;
+            const dy = thumbTip.y - indexTip.y;
+            // 2D screen-space distance is usually more stable than z-inclusive distance.
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            pinchDistanceSmoothed = THREE.MathUtils.lerp(pinchDistanceSmoothed, dist, 0.35);
+
+            // Hysteresis: tighter threshold to enter pinch, looser to exit.
+            if (pinchDistanceSmoothed <= PINCH_ON_THRESHOLD) {
+              pinchOnFrames += 1;
+              pinchOffFrames = 0;
+              if (!isPinching && pinchOnFrames >= ON_HOLD_FRAMES) isPinching = true;
+            } else if (pinchDistanceSmoothed >= PINCH_OFF_THRESHOLD) {
+              pinchOffFrames += 1;
+              pinchOnFrames = 0;
+              if (isPinching && pinchOffFrames >= OFF_HOLD_FRAMES) isPinching = false;
+            }
+          }
+          return;
+        }
+
+        missingHandFrames += 1;
+        if (missingHandFrames > MISS_FRAME_TOLERANCE) {
+          isPinching = false;
+          pinchOnFrames = 0;
+          pinchOffFrames = 0;
+        }
+      }
+
+      async function initHandTracking() {
+        if (!window.Hands || !window.Camera) return;
+
+        webcamVideo = document.createElement("video");
+        webcamVideo.setAttribute("playsinline", "");
+        webcamVideo.setAttribute("muted", "");
+        webcamVideo.muted = true;
+        webcamVideo.autoplay = true;
+        webcamVideo.width = 640;
+        webcamVideo.height = 480;
+        webcamVideo.style.position = "fixed";
+        webcamVideo.style.left = "-9999px";
+        webcamVideo.style.width = "1px";
+        webcamVideo.style.height = "1px";
+        webcamVideo.style.opacity = "0";
+        webcamVideo.style.pointerEvents = "none";
+        document.body.appendChild(webcamVideo);
+
+        hands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.6,
+          minTrackingConfidence: 0.5
+        });
+        hands.onResults(updatePinchState);
+
+        mpCamera = new Camera(webcamVideo, {
+          onFrame: async () => {
+            if (!hands) return;
+            await hands.send({ image: webcamVideo });
+          },
+          width: 640,
+          height: 480
+        });
+
+        try {
+          await mpCamera.start();
+          handTrackingActive = true;
+        } catch (err) {
+          handTrackingActive = false;
+          console.warn("Webcam permission denied or unavailable:", err);
+        }
+      }
+
       document.body.classList.add("revealed");
       setTimeout(hideLoader, 700);
+      initHandTracking();
 
       // 5) Look control (drag)
       let yaw = 0, pitch = 0;
@@ -726,6 +905,7 @@ if (cemIndex > -1) {
 
       renderer.domElement.addEventListener("pointerdown", (e) => {
         if (isOverlayOpen) return;
+        renderer.domElement.focus();
         dragging = true;
         moved = 0;
         lastX = e.clientX;
@@ -753,8 +933,24 @@ if (cemIndex > -1) {
 
       // 6) Movement + trackpad scroll
       const keys = new Set();
-      window.addEventListener("keydown", e => keys.add(e.key.toLowerCase()));
-      window.addEventListener("keyup",   e => keys.delete(e.key.toLowerCase()));
+      const codes = new Set();
+      const onKeyDown = (e) => {
+        keys.add((e.key || "").toLowerCase());
+        codes.add(e.code || "");
+      };
+      const onKeyUp = (e) => {
+        keys.delete((e.key || "").toLowerCase());
+        codes.delete(e.code || "");
+      };
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
+      document.addEventListener("keydown", onKeyDown);
+      document.addEventListener("keyup", onKeyUp);
+      window.addEventListener("blur", () => { keys.clear(); codes.clear(); });
+
+      function isPressed(charKey, codeKey) {
+        return keys.has(charKey) || codes.has(codeKey);
+      }
 
       let baseSpeed = 0.15;
       let scrollVel = 0;
@@ -770,7 +966,7 @@ if (cemIndex > -1) {
       function updateMovement(){
         if (isOverlayOpen) return;
 
-        const fast = keys.has("shift") ? 2.0 : 1.0;
+        const fast = keys.has("shift") || codes.has("ShiftLeft") || codes.has("ShiftRight") ? 2.0 : 1.0;
         const speed = baseSpeed * fast;
 
         const forward = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(pitch, yaw, 0, "YXZ"));
@@ -778,12 +974,12 @@ if (cemIndex > -1) {
         const up      = new THREE.Vector3(0,1,0);
 
         const v = new THREE.Vector3();
-        if (keys.has("w")) v.add(forward);
-        if (keys.has("s")) v.sub(forward);
-        if (keys.has("d")) v.add(right);
-        if (keys.has("a")) v.sub(right);
-        if (keys.has("e")) v.add(up);
-        if (keys.has("q")) v.sub(up);
+        if (isPressed("w", "KeyW")) v.add(forward);
+        if (isPressed("s", "KeyS")) v.sub(forward);
+        if (isPressed("d", "KeyD")) v.add(right);
+        if (isPressed("a", "KeyA")) v.sub(right);
+        if (isPressed("e", "KeyE")) v.add(up);
+        if (isPressed("q", "KeyQ")) v.sub(up);
 
         if (v.lengthSq() > 0){
           v.normalize().multiplyScalar(speed);
@@ -835,6 +1031,7 @@ if (cemIndex > -1) {
 
       // 9) Animate
       const camForward = new THREE.Vector3();
+      let wasAligning = false;
 
       function animate(){
         requestAnimationFrame(animate);
@@ -845,20 +1042,56 @@ if (cemIndex > -1) {
 
         camera.getWorldDirection(camForward);
         const t = performance.now() * 0.001;
+        if (isPinching && !wasPinching) {
+          // Pinch acts as a toggle: keep alignment after hand opens.
+          isAlignedLocked = !isAlignedLocked;
+        }
+        wasPinching = isPinching;
+
+        const isAligning = isAlignedLocked && !isOverlayOpen;
+
+        if (isAligning) {
+          setLineAlignedTargets();
+        }
+
+        if (isAligning !== wasAligning) {
+          for (const m of cards) {
+            m.userData.vel.multiplyScalar(0.2);
+          }
+          wasAligning = isAligning;
+        }
 
         for (const m of cards){
+          if (isAligning && m.userData.isAlignDuplicate) {
+            m.visible = false;
+            continue;
+          } else {
+            m.visible = true;
+          }
+
           const s = m.userData.seed;
           const base = m.userData.base;
 
-          // drift
-          const x = base.x + Math.sin(t * 0.7 + s) * 0.45;
-          const y = base.y + Math.cos(t * 0.6 + s) * 0.38;
-          const z = base.z + Math.sin(t * 0.5 + s) * 0.30;
-          m.userData.target.set(x,y,z);
+          if (!isAligning) {
+            // drift around base position
+            const x = base.x + Math.sin(t * 0.7 + s) * 0.45;
+            const y = base.y + Math.cos(t * 0.6 + s) * 0.38;
+            const z = base.z + Math.sin(t * 0.5 + s) * 0.30;
+            m.userData.target.set(x, y, z);
+          }
 
-          m.userData.vel.multiplyScalar(0.86);
-          m.userData.vel.add(m.userData.target.clone().sub(m.position).multiplyScalar(0.06));
+          const damping = isAligning ? 0.78 : 0.86;
+          const pullStrength = isAligning ? 0.16 : 0.06;
+          m.userData.vel.multiplyScalar(damping);
+          m.userData.vel.add(m.userData.target.clone().sub(m.position).multiplyScalar(pullStrength));
+          if (isAligning && m.userData.vel.lengthSq() > 1.2 * 1.2) {
+            m.userData.vel.setLength(1.2);
+          }
           m.position.add(m.userData.vel);
+          if (isAligning && m.position.distanceToSquared(m.userData.target) < 0.02) {
+            m.position.copy(m.userData.target);
+            m.userData.vel.set(0, 0, 0);
+          }
 
           const isHover = (hoverCard === m);
 
@@ -873,7 +1106,11 @@ if (cemIndex > -1) {
             m.material.opacity = 1.0;
             m.material.color.setScalar(1.0);
           } else {
-            m.scale.lerp(isHover ? new THREE.Vector3(1.12,1.12,1.12) : new THREE.Vector3(1,1,1), 0.10);
+            if (isAligning) {
+              m.scale.lerp(new THREE.Vector3(alignedCardScale, alignedCardScale, alignedCardScale), 0.18);
+            } else {
+              m.scale.lerp(isHover ? new THREE.Vector3(1.12,1.12,1.12) : new THREE.Vector3(1,1,1), 0.10);
+            }
 
             const dist = camera.position.distanceTo(m.position);
             let fade = (dist - 25) / (150 - 25);
@@ -887,14 +1124,25 @@ if (cemIndex > -1) {
             const priorityOpacityMul = isPriority ? 1.0 : THREE.MathUtils.lerp(0.18, 1.0, near);
             const priorityBrightMul  = isPriority ? 1.0 : THREE.MathUtils.lerp(0.50, 1.0, near);
 
-            m.material.opacity = THREE.MathUtils.lerp(0.98, 0.08, fade) * overlayDim * priorityOpacityMul;
+            if (isAligning) {
+              // In aligned mode keep all cards readable with uniform brightness.
+              m.material.opacity = 1.0;
+              m.material.color.setScalar(1.0);
+            } else {
+              m.material.opacity = THREE.MathUtils.lerp(0.98, 0.08, fade) * overlayDim * priorityOpacityMul;
 
-            const baseBright = THREE.MathUtils.lerp(1.0, 0.45, fade) * overlayDim * priorityBrightMul;
-            const bright = isHover ? Math.min(1.15, baseBright + 0.25) : baseBright;
-            m.material.color.setScalar(bright);
+              const baseBright = THREE.MathUtils.lerp(1.0, 0.45, fade) * overlayDim * priorityBrightMul;
+              const bright = isHover ? Math.min(1.15, baseBright + 0.25) : baseBright;
+              m.material.color.setScalar(bright);
+            }
           }
 
-          m.lookAt(camera.position);
+          if (isAligning) {
+            // Keep cards front-facing and parallel to the screen plane.
+            m.quaternion.slerp(camera.quaternion, 0.22);
+          } else {
+            m.lookAt(camera.position);
+          }
         }
 
         renderer.render(scene, camera);
