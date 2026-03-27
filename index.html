@@ -793,16 +793,44 @@ if (cemIndex > -1) {
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
         const center = camera.position.clone().add(forward.multiplyScalar(distance));
 
+        // Fill center slots first, so priority cards occupy the visual center.
+        const centerFirstSlots = [];
+        const cx = (cols - 1) * 0.5;
+        const cy = (rows - 1) * 0.5;
         for (let i = 0; i < count; i++) {
           const col = i % cols;
           const row = Math.floor(i / cols);
+          const dist2 = (col - cx) * (col - cx) + (row - cy) * (row - cy);
+          centerFirstSlots.push({ index: i, col, row, dist2 });
+        }
+        centerFirstSlots.sort((a, b) => a.dist2 - b.dist2);
+
+        // CEM highest priority, then video works, then others.
+        const alignOrdered = alignCards.slice().sort((a, b) => {
+          const aWork = a.userData.work || {};
+          const bWork = b.userData.work || {};
+          const aIsCem = String(aWork.id || "").toLowerCase() === "cem";
+          const bIsCem = String(bWork.id || "").toLowerCase() === "cem";
+          if (aIsCem !== bIsCem) return aIsCem ? -1 : 1;
+
+          const aIsVideo = aWork.type === "video";
+          const bIsVideo = bWork.type === "video";
+          if (aIsVideo !== bIsVideo) return aIsVideo ? -1 : 1;
+
+          return (aWork.prRank ?? 9999) - (bWork.prRank ?? 9999);
+        });
+
+        for (let i = 0; i < count; i++) {
+          const slot = centerFirstSlots[i];
+          const col = slot.col;
+          const row = slot.row;
           const colOffset = (col - (cols - 1) * 0.5) * xSpacing;
           const rowOffset = ((rows - 1) * 0.5 - row) * ySpacing;
 
           const target = center.clone()
             .add(right.clone().multiplyScalar(colOffset))
             .add(up.clone().multiplyScalar(rowOffset));
-          alignCards[i].userData.target.copy(target);
+          alignOrdered[i].userData.target.copy(target);
         }
       }
 
