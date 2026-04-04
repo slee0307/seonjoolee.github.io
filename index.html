@@ -85,13 +85,33 @@
 
   #workImage{
   display:none;
-  max-width: 100%;        /* ← 이건 바꾸는게 더 안정적 */
-  max-height: 70vh;       /* ← 살짝 줄여도 좋음 */
+  max-width: 100%;
+  max-height: 70vh;
   width: auto;
   height: auto;
   object-fit: contain;
   margin: 0 auto;
+  cursor: zoom-in;
 }
+
+    /* ===== LIGHTBOX ===== */
+    #lightbox{
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.95);
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox.open{ display: flex; }
+    #lightboxImg{
+      max-width: 95vw;
+      max-height: 95vh;
+      object-fit: contain;
+      cursor: zoom-out;
+    }
 
    /* ===== TEXT AREA ===== */
 #meta{
@@ -231,6 +251,7 @@
   <div id="nav">
    <div class="nav-item" data-page="about">About</div>
    <div class="nav-item" data-page="contact">Contact</div>
+   <div class="nav-item" data-page="cv">CV</div>
   </div>
 
   <div id="loader" aria-hidden="false">
@@ -270,6 +291,10 @@
   </div>
 
   <div id="closeBtn">Close (Esc)</div>
+
+  <div id="lightbox">
+    <img id="lightboxImg" alt="" draggable="false" />
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
@@ -336,9 +361,15 @@
         '<a href="mailto:contact@cuteerrormachine.com" style="color:#eaeaea;">contact@cuteerrormachine.com</a>';
     }
 
-    workImage.style.display = "none";
-    ytFrame.style.display = "none";
-    workVideo.style.display = "none";
+       if(page === "cv"){
+       workTitle.textContent = "";
+       workDesc.textContent = "";
+       workImage.src = "assets/images/SEONJOO_LEE_Resume.png";
+       workImage.style.display = "block";
+       workImage.style.maxHeight = "90vh";
+       metaEl.style.display = "none";
+       document.getElementById("mediaWrap").classList.add("image-mode");
+    }
 
     overlay.style.display = "flex";
     closeBtn.style.display = "block";
@@ -349,6 +380,26 @@
 });
     workVideo.addEventListener("contextmenu", (e) => e.preventDefault());
     workImage.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    // ===== LIGHTBOX =====
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+
+    workImage.addEventListener("click", () => {
+      if (!workImage.src) return;
+      lightboxImg.src = workImage.src;
+      lightbox.classList.add("open");
+    });
+
+    lightbox.addEventListener("click", () => {
+      lightbox.classList.remove("open");
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && lightbox.classList.contains("open")) {
+        lightbox.classList.remove("open");
+      }
+    });
 
     let isOverlayOpen = false;
     let focusedCard = null;
@@ -471,6 +522,10 @@ function openWork(card) {
       isOverlayOpen = false;
       resetMedia();
       focusedCard = null;
+      metaEl.style.display = "";
+      workImage.style.maxHeight = "";
+      document.getElementById("mediaWrap").classList.remove("image-mode");
+      lightbox.classList.remove("open");
       requestAnimationFrame(() => mainCanvas?.focus?.());
     }
 
@@ -479,7 +534,7 @@ function openWork(card) {
     });
     closeBtn.addEventListener("click", closeOverlay);
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && isOverlayOpen) closeOverlay();
+      if (e.key === "Escape" && isOverlayOpen && !lightbox.classList.contains("open")) closeOverlay();
     });
 
     // -------- Fallback title texture --------
