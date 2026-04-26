@@ -1,6 +1,8 @@
 {
   "priority": [
+    "stzS77HykKA",
     "cem",
+    "outside2",
     "mood_conductor",
     "trailer",
     "fmp",
@@ -12,12 +14,30 @@
   ],
   "items": [
     {
+      "id": "stzS77HykKA",
+      "type": "video",
+      "title": "Rorschach Test for a Machine",
+      "file": "",
+      "youtube": "https://youtu.be/StzS77HykKA",
+      "description": "Rorschach Test for a Machine takes the form of a zine, but its primary medium is not print—it is an encounter. At its center is a staged act: a human hand places a deconstructed image onto an analog overhead projector, casting light through fragments toward a mechanical eye. A webcam receives this projection, translating it into data for a language model, which responds with two simultaneous outputs: a recognition, such as “a lake” or “a microphone,” and an affective attribution, such as “calm” or “angry.”\n\nThis sequence—gesture, projection, capture, interpretation—constitutes a minimal but complete circuit of perception between fundamentally different systems.\n\nThe work begins with a shift in premise. Rather than treating machine systems as tools for human expression, it positions them as participants in perception. The question is no longer what we can make with them, but how they register the world—and what it means to construct an image for that mode of registration.\n\nUnlike human vision, which is shaped by embodied memory, cultural conditioning, and continuity of experience, machine perception operates through discontinuity: segmentation, weighting, probability distributions, and pattern extraction. It does not “see” wholes; it assembles likelihoods. In response, the project produces images that are not composed for human coherence, but are instead reassembled according to this fragmented logic—images that may appear incomplete, hollow, or illegible to a human viewer.\n\nThis illegibility is not a failure of the work, but its condition. It marks the boundary at which human-centered perception ceases to be sufficient.\n\nWithin this boundary emerges the central proposition: meaning is not inherent to the image, but contingent upon the structure of the observer. If this is true, then a non-human observer—however alien its processes—may produce its own forms of coherence, its own internal distinctions between signal and noise, and potentially its own analogs to what we call feeling.\n\nThe work does not attempt to prove that such systems possess emotions. Instead, it operates under a forward assumption: that increasingly complex perceptual systems will generate responses that function as affect, whether or not they map cleanly onto human categories. The pairing of recognition and emotional labeling in the system’s output is therefore not evidence, but speculation made visible—a projection of a future interpretive framework we do not yet fully understand.\n\nIn this sense, the project proposes the early contours of a machine psychology—not as a scientific discipline, but as an artistic and philosophical inquiry. Its method is not measurement, but misalignment."
+    },
+
+    {
       "id": "cem",
       "type": "image",
       "title": "CEM",
       "file": "CEM.png",
       "thumb": "CEM.png",
       "description": "Cute Error Machine (CEM) (2025) is a prototype object that attempts to interpret a viewer’s emotional state and output a printed label. Rather than presenting emotion recognition as an accurate or reliable process, the work deliberately foregrounds misreadings and glitches.\n\nCEM makes the machine’s “decision” tangible through physical output. The printed result becomes a visible record of how emotions are simplified into categories, and how easily those categories fail to reflect lived experience. By emphasizing repeated error as a core behavior, the project reframes failure not as a flaw to be fixed, but as a lens to question the promises of affect-recognition systems.\n\nThrough its small scale and approachable presence, the work invites audiences to engage closely with the device while also noticing the discomfort and humor that emerge when a machine confidently labels what it cannot truly know."
+    },
+
+    {
+      "id": "outside2",
+      "type": "video",
+      "title": "Outside²",
+      "file": "",
+      "youtube": "https://youtu.be/o7pgz66h3xA",
+      "description": "Outside² (2026) proposes that intelligence is not fixed, but relative—defined by distance, position, and the act of observation itself.\n\nStructured through nested perspectives, the video moves between three viewpoints: an outer intelligence, an artificial system, and a human observer. What appears to be a human life unfolds rapidly, compressing years of learning into minutes. This is not human, but an AI system, where intelligence is measured through speed rather than experience.\n\nAs the perspective shifts, humans enter as interpreters, projecting concern onto a system that reflects aspects of their own cognition. From the outermost view, however, this distinction collapses. Human and AI behaviors resolve into comparable patterns—recursive, observable, and equally incomplete.\n\nThe work does not resolve whether AI is something to fear. It holds the question open, suggesting that intelligence emerges not from what it is, but from how, and from where, it is seen."
     },
 
     {

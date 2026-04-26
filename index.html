@@ -594,9 +594,13 @@ function openWork(card) {
         const type = (it.type || "video").toLowerCase();
         const file = it.file || "";
         const youtube = it.youtube || null;
+        const youtubeId = getYouTubeId(youtube);
 
         const isImage = (type === "image");
         const src = isImage ? ("assets/images/" + file) : ("assets/videos/" + file);
+        const thumb = it.thumb
+          ? (/^https?:\/\//.test(it.thumb) ? it.thumb : ("assets/thumbs/" + it.thumb))
+          : (youtubeId ? ("https://img.youtube.com/vi/" + youtubeId + "/hqdefault.jpg") : null);
 
         return {
           id: it.id,
@@ -605,7 +609,7 @@ function openWork(card) {
           description: it.description || "",
           youtube: youtube,
           src: src,
-          thumb: it.thumb ? ("assets/thumbs/" + it.thumb) : null
+          thumb: thumb
         };
       }).filter(w => w.id && (w.type === "image" ? !!w.src : (!!w.youtube || !!w.src)));
 
@@ -684,6 +688,7 @@ function openWork(card) {
       }
 
       const texLoader = new THREE.TextureLoader();
+      texLoader.setCrossOrigin("anonymous");
 
       function createMaterial(work){
         const mat = new THREE.MeshBasicMaterial({
@@ -726,14 +731,16 @@ const FRONT_MIX_EXTRA = Math.min(10, otherWorks.length);
 // ❌ const 삭제하고 let만 사용
 let orderedWorks = priorityWorks.concat(otherWorks);
 
-// 🔥 CEM을 맨 앞으로 강제 이동 (대소문자 안전 버전 추천)
-const cemIndex = orderedWorks.findIndex(
-  w => w.id.toLowerCase() === "cem"
-);
+// Keep the newest featured video first, then CEM and Outside² nearby.
+for (const featuredId of ["stzs77hykka", "cem", "outside2"].reverse()) {
+  const featuredIndex = orderedWorks.findIndex(
+    w => w.id.toLowerCase() === featuredId
+  );
 
-if (cemIndex > -1) {
-  const [cem] = orderedWorks.splice(cemIndex, 1);
-  orderedWorks.unshift(cem);
+  if (featuredIndex > -1) {
+    const [featured] = orderedWorks.splice(featuredIndex, 1);
+    orderedWorks.unshift(featured);
+  }
 }
 
       // ✅ 앞에 확정 배치할 개수(=priority 전부 + extra 몇 개)
@@ -748,7 +755,9 @@ if (cemIndex > -1) {
       }
 
       function frontPos(index){
-        if (index === 0) return new THREE.Vector3(0, 0, FRONT_Z + 7);
+        if (index === 0) return new THREE.Vector3(-8.2, 0, FRONT_Z + 7);
+        if (index === 1) return new THREE.Vector3(0, 0, FRONT_Z + 7);
+        if (index === 2) return new THREE.Vector3(8.2, 0, FRONT_Z + 7);
 
         const ang = index * 1.15;
         const rad = 3 + index * 1.3;
@@ -852,7 +861,24 @@ if (cemIndex > -1) {
         const centerFirstSlots = [];
         const cx = (cols - 1) * 0.5;
         const cy = (rows - 1) * 0.5;
+        const featuredRow = Math.max(0, Math.min(rows - 1, Math.round(cy)));
+        const featuredCenterCol = Math.max(0, Math.min(cols - 1, Math.round(cx)));
+        const featuredSlotIndexes = new Set(
+          [featuredCenterCol - 1, featuredCenterCol, featuredCenterCol + 1]
+            .filter(col => col >= 0 && col < cols)
+            .map(col => featuredRow * cols + col)
+        );
+
+        for (const index of featuredSlotIndexes) {
+          if (index < count) {
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            centerFirstSlots.push({ index, col, row, dist2: 0 });
+          }
+        }
+
         for (let i = 0; i < count; i++) {
+          if (featuredSlotIndexes.has(i)) continue;
           const col = i % cols;
           const row = Math.floor(i / cols);
           const dist2 = (col - cx) * (col - cx) + (row - cy) * (row - cy);
@@ -864,9 +890,17 @@ if (cemIndex > -1) {
         const alignOrdered = alignCards.slice().sort((a, b) => {
           const aWork = a.userData.work || {};
           const bWork = b.userData.work || {};
+          const aIsNewVideo = String(aWork.id || "").toLowerCase() === "stzs77hykka";
+          const bIsNewVideo = String(bWork.id || "").toLowerCase() === "stzs77hykka";
+          if (aIsNewVideo !== bIsNewVideo) return aIsNewVideo ? -1 : 1;
+
           const aIsCem = String(aWork.id || "").toLowerCase() === "cem";
           const bIsCem = String(bWork.id || "").toLowerCase() === "cem";
           if (aIsCem !== bIsCem) return aIsCem ? -1 : 1;
+
+          const aIsOutside = String(aWork.id || "").toLowerCase() === "outside2";
+          const bIsOutside = String(bWork.id || "").toLowerCase() === "outside2";
+          if (aIsOutside !== bIsOutside) return aIsOutside ? -1 : 1;
 
           const aIsVideo = aWork.type === "video";
           const bIsVideo = bWork.type === "video";
