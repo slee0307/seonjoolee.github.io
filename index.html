@@ -731,8 +731,8 @@ const FRONT_MIX_EXTRA = Math.min(10, otherWorks.length);
 // ❌ const 삭제하고 let만 사용
 let orderedWorks = priorityWorks.concat(otherWorks);
 
-// Keep the newest featured video first, then CEM and Outside² nearby.
-for (const featuredId of ["stzs77hykka", "cem", "outside2"].reverse()) {
+// Keep the newest featured video first, then CEM, Outside², Mood Conductor, and hand tracking nearby.
+for (const featuredId of ["stzs77hykka", "cem", "outside2", "mood_conductor", "hand_tracking"].reverse()) {
   const featuredIndex = orderedWorks.findIndex(
     w => w.id.toLowerCase() === featuredId
   );
@@ -758,6 +758,8 @@ for (const featuredId of ["stzs77hykka", "cem", "outside2"].reverse()) {
         if (index === 0) return new THREE.Vector3(-8.2, 2.4, FRONT_Z + 7);
         if (index === 1) return new THREE.Vector3(0, 0, FRONT_Z + 7);
         if (index === 2) return new THREE.Vector3(8.2, -3.4, FRONT_Z + 7);
+        if (index === 3) return new THREE.Vector3(-11.5, -7.2, FRONT_Z + 3.5);
+        if (index === 4) return new THREE.Vector3(11.5, -7.2, FRONT_Z + 3.5);
 
         const ang = index * 1.15;
         const rad = 3 + index * 1.3;
@@ -901,6 +903,14 @@ for (const featuredId of ["stzs77hykka", "cem", "outside2"].reverse()) {
           const aIsOutside = String(aWork.id || "").toLowerCase() === "outside2";
           const bIsOutside = String(bWork.id || "").toLowerCase() === "outside2";
           if (aIsOutside !== bIsOutside) return aIsOutside ? -1 : 1;
+
+          const aIsMood = String(aWork.id || "").toLowerCase() === "mood_conductor";
+          const bIsMood = String(bWork.id || "").toLowerCase() === "mood_conductor";
+          if (aIsMood !== bIsMood) return aIsMood ? -1 : 1;
+
+          const aIsHandTracking = String(aWork.id || "").toLowerCase() === "hand_tracking";
+          const bIsHandTracking = String(bWork.id || "").toLowerCase() === "hand_tracking";
+          if (aIsHandTracking !== bIsHandTracking) return aIsHandTracking ? -1 : 1;
 
           const aIsVideo = aWork.type === "video";
           const bIsVideo = bWork.type === "video";
