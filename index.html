@@ -50,6 +50,7 @@
 
     /* media area stays content-based */
     #mediaWrap{
+      position: relative;
       background:#000;
       display:flex;
       justify-content:center;
@@ -93,6 +94,44 @@
   margin: 0 auto;
   cursor: zoom-in;
 }
+
+    .slide-btn{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      z-index:3;
+      display:none;
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(0,0,0,0.38);
+      color:#fff;
+      font-size:26px;
+      line-height:1;
+      cursor:pointer;
+      backdrop-filter: blur(8px);
+      user-select:none;
+    }
+    .slide-btn:hover{ background:rgba(255,255,255,0.14); }
+    #slidePrev{ left:12px; }
+    #slideNext{ right:12px; }
+    #slideIndicator{
+      position:absolute;
+      right:14px;
+      bottom:12px;
+      z-index:3;
+      display:none;
+      color:rgba(255,255,255,0.88);
+      background:rgba(0,0,0,0.42);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:999px;
+      padding:5px 9px;
+      font-family:system-ui, -apple-system, sans-serif;
+      font-size:12px;
+      backdrop-filter: blur(8px);
+      user-select:none;
+    }
 
     /* ===== LIGHTBOX ===== */
     #lightbox{
@@ -281,6 +320,9 @@
         ></video>
 
         <img id="workImage" alt="" draggable="false" />
+        <button id="slidePrev" class="slide-btn" type="button" aria-label="Previous media">‹</button>
+        <button id="slideNext" class="slide-btn" type="button" aria-label="Next media">›</button>
+        <div id="slideIndicator"></div>
       </div>
 
       <div id="meta">
@@ -336,6 +378,9 @@
     const workTitle = document.getElementById("workTitle");
     const workDesc  = document.getElementById("workDesc");
     const metaEl    = document.getElementById("meta");
+    const slidePrev = document.getElementById("slidePrev");
+    const slideNext = document.getElementById("slideNext");
+    const slideIndicator = document.getElementById("slideIndicator");
     const PINCH_ON_THRESHOLD = 0.045;
     const PINCH_OFF_THRESHOLD = 0.07;
     
@@ -415,6 +460,8 @@
     let pinchOffFrames = 0;
     let wasPinching = false;
     let isAlignedLocked = false;
+    let currentMediaSlides = [];
+    let currentMediaIndex = 0;
 
     function resetMedia() {
       // local video
@@ -430,6 +477,12 @@
       // image
       workImage.removeAttribute("src");
       workImage.style.display = "none";
+
+      currentMediaSlides = [];
+      currentMediaIndex = 0;
+      slidePrev.style.display = "none";
+      slideNext.style.display = "none";
+      slideIndicator.style.display = "none";
     }
 
     // ✅ accepts either full URL or just ID
@@ -467,6 +520,55 @@
 
 const mediaWrap = document.getElementById("mediaWrap"); // ← 함수 밖에 1번 선언
 
+function showMediaSlide(index) {
+  if (!currentMediaSlides.length) return;
+
+  currentMediaIndex = (index + currentMediaSlides.length) % currentMediaSlides.length;
+  const slide = currentMediaSlides[currentMediaIndex];
+
+  ytFrame.removeAttribute("src");
+  ytFrame.style.display = "none";
+  try { workVideo.pause(); } catch(e){}
+  workVideo.removeAttribute("src");
+  workVideo.load();
+  workVideo.style.display = "none";
+  workImage.removeAttribute("src");
+  workImage.style.display = "none";
+  mediaWrap.classList.remove("image-mode");
+
+  if (slide.type === "youtube") {
+    ytFrame.src = toYouTubeEmbed(slide.src);
+    ytFrame.style.display = "block";
+  } else if (slide.type === "video") {
+    workVideo.src = slide.src;
+    workVideo.currentTime = 0;
+    workVideo.style.display = "block";
+    workVideo.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
+    workVideo.setAttribute("disablePictureInPicture", "");
+    workVideo.play().catch(()=>{});
+  } else if (slide.type === "image") {
+    workImage.src = slide.src;
+    workImage.style.display = "block";
+    mediaWrap.classList.add("image-mode");
+  }
+
+  const hasMultipleSlides = currentMediaSlides.length > 1;
+  slidePrev.style.display = hasMultipleSlides ? "block" : "none";
+  slideNext.style.display = hasMultipleSlides ? "block" : "none";
+  slideIndicator.style.display = hasMultipleSlides ? "block" : "none";
+  slideIndicator.textContent = `${currentMediaIndex + 1} / ${currentMediaSlides.length}`;
+}
+
+slidePrev.addEventListener("click", (e) => {
+  e.stopPropagation();
+  showMediaSlide(currentMediaIndex - 1);
+});
+
+slideNext.addEventListener("click", (e) => {
+  e.stopPropagation();
+  showMediaSlide(currentMediaIndex + 1);
+});
+
 function openWork(card) {
   const work = card.userData.work;
 
@@ -478,32 +580,23 @@ function openWork(card) {
   // 🔥 image-mode 초기화
   mediaWrap.classList.remove("image-mode");
 
+  currentMediaSlides = [];
+
   if (work.type === "image") {
-    workImage.src = work.src;
-    workImage.style.display = "block";
-
-    // 🔥 이미지일 때만 적용
-    mediaWrap.classList.add("image-mode");
-
+    currentMediaSlides.push({ type: "image", src: work.src });
   } else {
     const ytId = getYouTubeId(work.youtube);
+    if (ytId) currentMediaSlides.push({ type: "youtube", src: work.youtube });
+    else currentMediaSlides.push({ type: "video", src: work.src });
+  }
 
-    if (ytId) {
-      ytFrame.src = toYouTubeEmbed(ytId);
-      ytFrame.style.display = "block";
-
-    } else {
-      workVideo.src = work.src;
-      workVideo.currentTime = 0;
-      workVideo.style.display = "block";
-
-      // 🔥 다운로드 방지 옵션 (B에서 가져옴)
-      workVideo.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-      workVideo.setAttribute("disablePictureInPicture", "");
-
-      workVideo.play().catch(()=>{});
+  if (Array.isArray(work.slides)) {
+    for (const src of work.slides) {
+      currentMediaSlides.push({ type: "image", src: src });
     }
   }
+
+  showMediaSlide(0);
 
   overlay.style.display = "flex";
   closeBtn.style.display = "block";
@@ -535,6 +628,9 @@ function openWork(card) {
     closeBtn.addEventListener("click", closeOverlay);
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && isOverlayOpen && !lightbox.classList.contains("open")) closeOverlay();
+      if (!isOverlayOpen || lightbox.classList.contains("open") || currentMediaSlides.length <= 1) return;
+      if (e.key === "ArrowLeft") showMediaSlide(currentMediaIndex - 1);
+      if (e.key === "ArrowRight") showMediaSlide(currentMediaIndex + 1);
     });
 
     // -------- Fallback title texture --------
@@ -609,7 +705,10 @@ function openWork(card) {
           description: it.description || "",
           youtube: youtube,
           src: src,
-          thumb: thumb
+          thumb: thumb,
+          slides: Array.isArray(it.slides)
+            ? it.slides.map(slide => /^https?:\/\//.test(slide) ? slide : ("assets/images/" + slide))
+            : []
         };
       }).filter(w => w.id && (w.type === "image" ? !!w.src : (!!w.youtube || !!w.src)));
 
