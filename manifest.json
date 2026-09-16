@@ -29,11 +29,16 @@
 
     {
       "id": "cem",
-      "type": "image",
+      "type": "video",
       "title": "CEM",
-      "file": "CEM.png",
+      "file": "CEM.mp4",
       "thumb": "CEM.png",
-      "description": "Cute Error Machine (CEM) (2025) is a prototype object that attempts to interpret a viewer’s emotional state and output a printed label. Rather than presenting emotion recognition as an accurate or reliable process, the work deliberately foregrounds misreadings and glitches.\n\nCEM makes the machine’s “decision” tangible through physical output. The printed result becomes a visible record of how emotions are simplified into categories, and how easily those categories fail to reflect lived experience. By emphasizing repeated error as a core behavior, the project reframes failure not as a flaw to be fixed, but as a lens to question the promises of affect-recognition systems.\n\nThrough its small scale and approachable presence, the work invites audiences to engage closely with the device while also noticing the discomfort and humor that emerge when a machine confidently labels what it cannot truly know."
+      "slides": [
+        "CEM front.jpg",
+        "CEM side.jpg",
+        "CEM.png"
+      ],
+      "description": "Cute Error Machine (CEM), 2026\n\nCute Error Machine (CEM) is an interactive object that attempts to interpret a viewer’s emotional state and display an emotion label. Rather than presenting emotion recognition as accurate or reliable, the work foregrounds the misreadings and unexpected results produced by machine classification.\n\nBy making the machine’s “decision” visible, CEM reveals how complex and subjective emotions are reduced to fixed categories—and how easily those categories fail to reflect lived experience. Despite its mistakes, the machine presents each judgment with confidence, creating moments that feel both uncomfortable and humorous.\n\nIts small scale and cute, approachable appearance invites viewers to engage closely with the device, lowering the sense of distance or intimidation often associated with AI. The opaque black half references the idea of AI as a “black box.” Through the contrast between its playful exterior and unreadable interior, CEM explores the tension between how familiar AI can appear and how little we may understand about the systems making decisions about us.\n\nSlide 4 — Earlier Prototype, 2025\n\nAn earlier version of CEM translated its interpretation of the viewer’s emotional state into a printed label. The physical printout made the machine’s judgment tangible, creating a lasting record of how an emotional experience had been reduced to a single category.\n\nIn the 2026 version, the printing mechanism was replaced by an integrated display, while the object’s visual form was further developed to explore the contrast between approachability and opacity."
     },
 
     {

@@ -1,4 +1,5 @@
-assets/videos/
+assets/videos/*
 *.mp4
 *.mov
+!assets/videos/CEM.mp4
 .DS_Store

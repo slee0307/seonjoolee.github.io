@@ -145,6 +145,25 @@
       cursor: zoom-out;
     }
     #lightbox.open{ display: flex; }
+    #workVideo{ cursor: zoom-in; }
+    #lightbox #workVideo{
+      width: 95vw;
+      max-height: 90vh;
+      object-fit: contain;
+      cursor: auto;
+    }
+    #lightboxClose{
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 1;
+      padding: 8px 14px;
+      border: 1px solid #777;
+      border-radius: 8px;
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
     #lightboxImg{
       max-width: 95vw;
       max-height: 95vh;
@@ -335,6 +354,7 @@
   <div id="closeBtn">Close (Esc)</div>
 
   <div id="lightbox">
+    <button id="lightboxClose" type="button" aria-label="Close enlarged media">Close (Esc)</button>
     <img id="lightboxImg" alt="" draggable="false" />
   </div>
 
@@ -429,6 +449,28 @@
     // ===== LIGHTBOX =====
     const lightbox = document.getElementById("lightbox");
     const lightboxImg = document.getElementById("lightboxImg");
+    const lightboxClose = document.getElementById("lightboxClose");
+
+    function closeLightbox() {
+      if (workVideo.parentElement === lightbox) {
+        document.getElementById("mediaWrap").insertBefore(workVideo, workImage);
+      }
+      lightbox.classList.remove("open");
+      lightboxImg.style.display = "";
+    }
+
+    workVideo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (workVideo.parentElement === lightbox || !workVideo.getAttribute("src")) return;
+      // Leave the native playback controls available without opening the lightbox.
+      const bounds = workVideo.getBoundingClientRect();
+      if (e.clientY > bounds.bottom - 48) return;
+      lightboxImg.style.display = "none";
+      lightbox.appendChild(workVideo);
+      lightbox.classList.add("open");
+      workVideo.play().catch(() => {});
+    });
+    lightboxClose.addEventListener("click", closeLightbox);
 
     workImage.addEventListener("click", () => {
       if (!workImage.src) return;
@@ -436,13 +478,15 @@
       lightbox.classList.add("open");
     });
 
-    lightbox.addEventListener("click", () => {
-      lightbox.classList.remove("open");
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox || e.target === lightboxImg) closeLightbox();
     });
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && lightbox.classList.contains("open")) {
-        lightbox.classList.remove("open");
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closeLightbox();
       }
     });
 
@@ -610,6 +654,7 @@ function openWork(card) {
     
 
     function closeOverlay() {
+      closeLightbox();
       overlay.style.display = "none";
       closeBtn.style.display = "none";
       isOverlayOpen = false;
@@ -695,7 +740,7 @@ function openWork(card) {
         const isImage = (type === "image");
         const src = isImage ? ("assets/images/" + file) : ("assets/videos/" + file);
         const thumb = it.thumb
-          ? (/^https?:\/\//.test(it.thumb) ? it.thumb : ("assets/thumbs/" + it.thumb))
+          ? (/^(https?:\/\/|assets\/)/.test(it.thumb) ? it.thumb : ("assets/thumbs/" + it.thumb))
           : (youtubeId ? ("https://img.youtube.com/vi/" + youtubeId + "/hqdefault.jpg") : null);
 
         return {
@@ -706,6 +751,7 @@ function openWork(card) {
           youtube: youtube,
           src: src,
           thumb: thumb,
+          thumbAspect: Number.isFinite(it.thumbAspect) && it.thumbAspect > 0 ? it.thumbAspect : 16 / 9,
           slides: Array.isArray(it.slides)
             ? it.slides.map(slide => /^https?:\/\//.test(slide) ? slide : ("assets/images/" + slide))
             : []
@@ -802,6 +848,7 @@ function openWork(card) {
             work.thumb,
             (tex) => {
               tex.colorSpace = THREE.SRGBColorSpace;
+              tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
               mat.map = tex;
               mat.needsUpdate = true;
             },
@@ -882,8 +929,8 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
         const work = (i < orderedWorks.length) ? orderedWorks[i] : pickRandomWork();
         const mat  = createMaterial(work);
 
-        const w = 6.5 + Math.random() * 6.5;
-        const h = w * (9/16);
+        const h = (6.5 + Math.random() * 6.5) * (9/16);
+        const w = h * work.thumbAspect;
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
         maxCardWidth = Math.max(maxCardWidth, w);
         maxCardHeight = Math.max(maxCardHeight, h);
