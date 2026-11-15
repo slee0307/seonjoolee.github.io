@@ -73,6 +73,10 @@
       max-height: 48vh;
     }
 
+    #pdfViewer { display:none; width:100%; background:#f5f3ee; }
+    #pdfFrame { display:block; width:100%; height:60vh; border:0; }
+    #pdfLink { display:block; padding:12px 16px; color:#222; text-align:center; font:14px system-ui, sans-serif; }
+
     /* Local video fallback */
     #workVideo{
       width:100%;
@@ -338,6 +342,10 @@
           disablePictureInPicture
         ></video>
 
+        <div id="pdfViewer">
+          <iframe id="pdfFrame" title="Short story PDF"></iframe>
+          <a id="pdfLink" target="_blank" rel="noopener">Read PDF in a new tab ↗</a>
+        </div>
         <img id="workImage" alt="" draggable="false" />
         <button id="slidePrev" class="slide-btn" type="button" aria-label="Previous media">‹</button>
         <button id="slideNext" class="slide-btn" type="button" aria-label="Next media">›</button>
@@ -394,6 +402,14 @@
     const closeBtn = document.getElementById("closeBtn");
     const workVideo = document.getElementById("workVideo");
     const ytFrame = document.getElementById("ytFrame");
+    const pdfViewer = document.getElementById("pdfViewer");
+    const pdfFrame = document.getElementById("pdfFrame");
+    const pdfLink = document.getElementById("pdfLink");
+    function resetPdf() {
+      pdfFrame.removeAttribute("src");
+      pdfLink.removeAttribute("href");
+      pdfViewer.style.display = "none";
+    }
     const workImage = document.getElementById("workImage");
     const workTitle = document.getElementById("workTitle");
     const workDesc  = document.getElementById("workDesc");
@@ -508,6 +524,7 @@
     let currentMediaIndex = 0;
 
     function resetMedia() {
+      resetPdf();
       // local video
       try { workVideo.pause(); } catch(e){}
       workVideo.removeAttribute("src");
@@ -569,6 +586,7 @@ function showMediaSlide(index) {
 
   currentMediaIndex = (index + currentMediaSlides.length) % currentMediaSlides.length;
   const slide = currentMediaSlides[currentMediaIndex];
+  resetPdf();
 
   ytFrame.removeAttribute("src");
   ytFrame.style.display = "none";
@@ -580,7 +598,11 @@ function showMediaSlide(index) {
   workImage.style.display = "none";
   mediaWrap.classList.remove("image-mode");
 
-  if (slide.type === "youtube") {
+  if (slide.type === "pdf") {
+    pdfFrame.src = encodeURI(slide.src);
+    pdfLink.href = encodeURI(slide.src);
+    pdfViewer.style.display = "block";
+  } else if (slide.type === "youtube") {
     ytFrame.src = toYouTubeEmbed(slide.src);
     ytFrame.style.display = "block";
   } else if (slide.type === "video") {
@@ -626,8 +648,8 @@ function openWork(card) {
 
   currentMediaSlides = [];
 
-  if (work.type === "image") {
-    currentMediaSlides.push({ type: "image", src: work.src });
+  if (work.type === "image" || work.type === "pdf") {
+    currentMediaSlides.push({ type: work.type, src: work.src });
   } else {
     const ytId = getYouTubeId(work.youtube);
     if (ytId) currentMediaSlides.push({ type: "youtube", src: work.youtube });
@@ -699,7 +721,7 @@ function openWork(card) {
       ctx.textBaseline = "middle";
 
       const pad = 22;
-      ctx.fillText(title || "Untitled", pad, c.height * 0.55);
+      ctx.fillText(title || "Untitled", pad, c.height * 0.55, c.width - pad * 2);
 
       ctx.fillStyle = "rgba(255,255,255,0.55)";
       ctx.font = "500 13px system-ui, -apple-system, sans-serif";
@@ -738,14 +760,14 @@ function openWork(card) {
         const youtubeId = getYouTubeId(youtube);
 
         const isImage = (type === "image");
-        const src = isImage ? ("assets/images/" + file) : ("assets/videos/" + file);
+        const src = (isImage ? "assets/images/" : type === "pdf" ? "assets/pdfs/" : "assets/videos/") + file;
         const thumb = it.thumb
           ? (/^(https?:\/\/|assets\/)/.test(it.thumb) ? it.thumb : ("assets/thumbs/" + it.thumb))
           : (youtubeId ? ("https://img.youtube.com/vi/" + youtubeId + "/hqdefault.jpg") : null);
 
         return {
           id: it.id,
-          type: isImage ? "image" : "video",
+          type: isImage ? "image" : type === "pdf" ? "pdf" : "video",
           title: it.title || it.id,
           description: it.description || "",
           youtube: youtube,
@@ -799,37 +821,23 @@ function openWork(card) {
       const FRONT_SPREAD  = 20;
       const INNER_R       = 25;
       const OUTER_R       = 60;
-      const MIN_CAM_DIST  = 12;
+      // Anchor the surrounding gallery to the initial viewpoint, including behind it.
+      const galleryCenter = camera.position.clone();
 
-      function randomInShell(r1, r2) {
-        const a = Math.min(r1, r2);
-        const b = Math.max(r1, r2);
-
-        const u = Math.random();
-        const r = Math.cbrt((b**3 - a**3) * u + a**3);
-
-        const theta = Math.random() * Math.PI * 2;
-        const v = Math.random() * 2 - 1;
-        const phi = Math.acos(v);
-
-        return new THREE.Vector3(
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.cos(phi),
-          r * Math.sin(phi) * Math.sin(theta)
-        );
-      }
-
-      function safeRandomPos() {
-        for (let tries = 0; tries < 60; tries++) {
-          const p = randomInShell(INNER_R, OUTER_R);
-          const d = camera.position.distanceTo(p);
-          if (d > MIN_CAM_DIST && p.z < (camera.position.z - 2)) return p;
-        }
-        return new THREE.Vector3(
-          (Math.random()*2-1) * OUTER_R,
-          (Math.random()*2-1) * OUTER_R * 0.6,
-          0
-        );
+      function surroundingPos(index) {
+        // Reserve the opening 100-degree sector for the featured cards.
+        // Golden-angle ordering spreads even the first unique works around the viewer.
+        const turn = (index * 0.618033988749895) % 1;
+        const theta = THREE.MathUtils.degToRad(50 + turn * 260);
+        const band = (index * 3) % 7;
+        const elevation = THREE.MathUtils.degToRad((band - 3) * 20);
+        const radius = INNER_R + ((index * 0.414213562373095) % 1) * (OUTER_R - INNER_R);
+        const horizontalRadius = radius * Math.cos(elevation);
+        return galleryCenter.clone().add(new THREE.Vector3(
+          Math.sin(theta) * horizontalRadius,
+          Math.sin(elevation) * radius,
+          -Math.cos(theta) * horizontalRadius
+        ));
       }
 
       const texLoader = new THREE.TextureLoader();
@@ -872,13 +880,13 @@ let maxCardHeight = 0;
 let alignedCardScale = 1;
 const ALIGN_SCALE_BOOST = 1.22;
 
-const FRONT_MIX_EXTRA = Math.min(10, otherWorks.length);
+const featuredIds = ["stzs77hykka", "cem", "sam_and_cem", "trailer", "outside2", "mood_conductor", "hand_tracking", "unknown_world"];
 
 // ❌ const 삭제하고 let만 사용
 let orderedWorks = priorityWorks.concat(otherWorks);
 
-// Keep the newest featured video first, then CEM, Gate, Outside², Mood Conductor, and hand tracking nearby.
-for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_conductor", "hand_tracking"].reverse()) {
+// The first three slots place the featured video left, CEM center, and the story right.
+for (const featuredId of featuredIds.slice().reverse()) {
   const featuredIndex = orderedWorks.findIndex(
     w => w.id.toLowerCase() === featuredId
   );
@@ -889,24 +897,23 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
   }
 }
 
-      // ✅ 앞에 확정 배치할 개수(=priority 전부 + extra 몇 개)
-      const frontCount = Math.min(priorityWorks.length + FRONT_MIX_EXTRA, orderedWorks.length);
+      // Only explicitly featured works occupy the opening composition.
+      const frontCount = orderedWorks.filter(w => featuredIds.includes(w.id.toLowerCase())).length;
+      const surroundingWorks = orderedWorks.slice(frontCount);
 
-      function pickRandomWork() {
-        const p = Math.random();
-        if (priorityWorks.length && p < 0.35) {
-          return priorityWorks[(Math.random() * priorityWorks.length) | 0];
-        }
-        return orderedWorks[(Math.random() * orderedWorks.length) | 0];
+      function pickSurroundingWork(index) {
+        const pool = surroundingWorks.length ? surroundingWorks : orderedWorks;
+        return pool[index % pool.length];
       }
 
       function frontPos(index){
         if (index === 0) return new THREE.Vector3(-8.2, 2.4, FRONT_Z + 7);
         if (index === 1) return new THREE.Vector3(0, 0, FRONT_Z + 7);
-        if (index === 2) return new THREE.Vector3(9.8, 5.4, FRONT_Z + 5.5);
-        if (index === 3) return new THREE.Vector3(8.2, -3.4, FRONT_Z + 7);
+        if (index === 2) return new THREE.Vector3(9, 3.8, FRONT_Z + 4); // Sam: upper right
+        if (index === 3) return new THREE.Vector3(13, -5, FRONT_Z); // Gate: lower right
         if (index === 4) return new THREE.Vector3(-11.5, -7.2, FRONT_Z + 3.5);
-        if (index === 5) return new THREE.Vector3(11.5, -7.2, FRONT_Z + 3.5);
+        if (index === 5) return new THREE.Vector3(2.5, -9, FRONT_Z - 3); // Mood: below center
+        if (index === 7) return new THREE.Vector3(-15, -1.5, FRONT_Z - 3); // Unknown World: left
 
         const ang = index * 1.15;
         const rad = 3 + index * 1.3;
@@ -926,17 +933,19 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
       for (let i = 0; i < CARD_COUNT; i++){
         // ✅ 1) orderedWorks 전체를 먼저 한 번씩 생성
         // ✅ 2) 남는 카드만 랜덤으로 채움
-        const work = (i < orderedWorks.length) ? orderedWorks[i] : pickRandomWork();
+        const work = (i < orderedWorks.length) ? orderedWorks[i] : pickSurroundingWork(i - orderedWorks.length);
         const mat  = createMaterial(work);
 
-        const h = (6.5 + Math.random() * 6.5) * (9/16);
+        // Keep these neighboring featured cards from growing into each other on reload.
+        const spacedFeatured = i < frontCount && ["sam_and_cem", "trailer", "mood_conductor"].includes(work.id);
+        const h = spacedFeatured ? 4.7 : (6.5 + Math.random() * 6.5) * (9/16);
         const w = h * work.thumbAspect;
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
         maxCardWidth = Math.max(maxCardWidth, w);
         maxCardHeight = Math.max(maxCardHeight, h);
 
-        // ✅ frontCount까지는 앞쪽 배치, 그 이후는 랜덤
-        const p = (i < frontCount) ? frontPos(i) : safeRandomPos();
+        // Preserve the featured composition; spread all remaining cards around the viewer.
+        const p = (i < frontCount) ? frontPos(i) : surroundingPos(i - frontCount);
         mesh.position.copy(p);
 
         const isPriority = prIndex.has(work.id);
@@ -1035,7 +1044,7 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
         }
         centerFirstSlots.sort((a, b) => a.dist2 - b.dist2);
 
-        // CEM highest priority, then video works, then others.
+        // Match the featured left / center / right slots in the aligned layout.
         const alignOrdered = alignCards.slice().sort((a, b) => {
           const aWork = a.userData.work || {};
           const bWork = b.userData.work || {};
@@ -1046,6 +1055,10 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
           const aIsCem = String(aWork.id || "").toLowerCase() === "cem";
           const bIsCem = String(bWork.id || "").toLowerCase() === "cem";
           if (aIsCem !== bIsCem) return aIsCem ? -1 : 1;
+
+          const aIsStory = aWork.id === "sam_and_cem";
+          const bIsStory = bWork.id === "sam_and_cem";
+          if (aIsStory !== bIsStory) return aIsStory ? -1 : 1;
 
           const aIsGate = String(aWork.id || "").toLowerCase() === "trailer";
           const bIsGate = String(bWork.id || "").toLowerCase() === "trailer";
@@ -1399,8 +1412,8 @@ for (const featuredId of ["stzs77hykka", "cem", "trailer", "outside2", "mood_con
 
             const near = THREE.MathUtils.clamp(1.0 - (dist - 12) / 22, 0, 1);
 
-            const priorityOpacityMul = isPriority ? 1.0 : THREE.MathUtils.lerp(0.18, 1.0, near);
-            const priorityBrightMul  = isPriority ? 1.0 : THREE.MathUtils.lerp(0.50, 1.0, near);
+            const priorityOpacityMul = isPriority ? 1.0 : THREE.MathUtils.lerp(0.72, 1.0, near);
+            const priorityBrightMul  = isPriority ? 1.0 : THREE.MathUtils.lerp(0.85, 1.0, near);
 
             if (isAligning) {
               // In aligned mode keep all cards readable with uniform brightness.
