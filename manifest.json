@@ -2,6 +2,7 @@
   "priority": [
     "stzS77HykKA",
     "cem",
+    "sam_and_cem",
     "trailer",
     "outside2",
     "mood_conductor",
@@ -13,6 +14,14 @@
     "unknown_world"
   ],
   "items": [
+    {
+      "id": "sam_and_cem",
+      "type": "pdf",
+      "title": "A short story of Sam and CEM",
+      "file": "A-short- story of Sam and CEM.pdf",
+      "thumb": "sam-and-cem.svg",
+      "description": "A short story of Sam and CEM · Short fiction · PDF"
+    },
     {
       "id": "stzS77HykKA",
       "type": "video",
