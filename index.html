@@ -938,10 +938,17 @@ for (const featuredId of featuredIds.slice().reverse()) {
         return new THREE.Vector3(cx, cy, z);
       }
 
-      for (let i = 0; i < CARD_COUNT; i++){
+      const leftSideCopies = [
+        { id: "partical", angle: -60, height: 3 },
+        { id: "machine_signal", angle: -85, height: -2 }
+      ].filter(copy => orderedWorks.some(work => work.id === copy.id));
+
+      for (let i = 0; i < CARD_COUNT + leftSideCopies.length; i++){
         // ✅ 1) orderedWorks 전체를 먼저 한 번씩 생성
         // ✅ 2) 남는 카드만 랜덤으로 채움
-        const work = (i < orderedWorks.length) ? orderedWorks[i] : pickSurroundingWork(i - orderedWorks.length);
+        const leftCopy = leftSideCopies[i - CARD_COUNT];
+        const work = leftCopy ? orderedWorks.find(work => work.id === leftCopy.id)
+          : (i < orderedWorks.length) ? orderedWorks[i] : pickSurroundingWork(i - orderedWorks.length);
         const mat  = createMaterial(work);
 
         // Keep these neighboring featured cards from growing into each other on reload.
@@ -953,7 +960,13 @@ for (const featuredId of featuredIds.slice().reverse()) {
         maxCardHeight = Math.max(maxCardHeight, h);
 
         // Preserve the featured composition; spread all remaining cards around the viewer.
-        const p = (i < frontCount) ? frontPos(i) : surroundingPos(i - frontCount);
+        const p = leftCopy
+          ? galleryCenter.clone().add(new THREE.Vector3(
+              Math.sin(THREE.MathUtils.degToRad(leftCopy.angle)) * 28,
+              leftCopy.height,
+              -Math.cos(THREE.MathUtils.degToRad(leftCopy.angle)) * 28
+            ))
+          : (i < frontCount) ? frontPos(i) : surroundingPos(i - frontCount);
         mesh.position.copy(p);
 
         const isPriority = prIndex.has(work.id);
@@ -972,13 +985,16 @@ for (const featuredId of featuredIds.slice().reverse()) {
         cards.push(mesh);
       }
 
-      // Exchange the opening positions while keeping each card's media and styling.
+      // Keep Machine Drawing near the opening; place Sound in Your Hands in the right-side gallery.
       const machineDrawingCard = cards.find(card => card.userData.work.id === "machine_drawing");
       const soundInYourHandsCard = cards.find(card => card.userData.work.id === "hand_tracking");
       if (machineDrawingCard && soundInYourHandsCard) {
-        const machinePosition = machineDrawingCard.position.clone();
-        const soundPosition = soundInYourHandsCard.position.clone();
-        for (const [card, position] of [[machineDrawingCard, soundPosition], [soundInYourHandsCard, machinePosition]]) {
+        const machinePosition = soundInYourHandsCard.position.clone().add(new THREE.Vector3(-2, 0, 0));
+        const soundAngle = THREE.MathUtils.degToRad(65);
+        const soundPosition = galleryCenter.clone().add(new THREE.Vector3(
+          Math.sin(soundAngle) * 28, 0, -Math.cos(soundAngle) * 28
+        ));
+        for (const [card, position] of [[machineDrawingCard, machinePosition], [soundInYourHandsCard, soundPosition]]) {
           card.position.copy(position);
           card.userData.base.copy(position);
           card.userData.target.copy(position);
