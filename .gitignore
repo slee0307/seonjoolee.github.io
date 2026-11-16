@@ -2,4 +2,5 @@ assets/videos/*
 *.mp4
 *.mov
 !assets/videos/CEM.mp4
+!assets/videos/Machine_Drawing.mp4
 .DS_Store

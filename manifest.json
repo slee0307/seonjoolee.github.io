@@ -2,6 +2,8 @@
   "priority": [
     "stzS77HykKA",
     "cem",
+    "second_loop",
+    "machine_drawing",
     "sam_and_cem",
     "trailer",
     "outside2",
@@ -14,6 +16,25 @@
     "unknown_world"
   ],
   "items": [
+    {
+      "id": "machine_drawing",
+      "type": "video",
+      "title": "Machine Drawing",
+      "file": "Machine_Drawing.mp4",
+      "thumb": "assets/images/Map.jpg",
+      "thumbAspect": 1.4142310018141504,
+      "slides": ["Map.jpg"],
+      "description": ""
+    },
+    {
+      "id": "second_loop",
+      "type": "image",
+      "title": "Second Loop",
+      "file": "Second_Loop.jpg",
+      "thumb": "assets/images/Second_Loop.jpg",
+      "thumbAspect": 0.6470588235294118,
+      "description": ""
+    },
     {
       "id": "sam_and_cem",
       "type": "pdf",

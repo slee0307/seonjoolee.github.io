@@ -375,6 +375,8 @@
     const loader = document.getElementById("loader");
     const loaderTextEl = document.getElementById("loaderText");
     const LOADER_LINE = "Now you’re entering my mindspace...";
+    const skipIntro = new URLSearchParams(window.location.search).get("skipIntro") === "1";
+    if (skipIntro) loader.style.display = "none";
 
     function hideLoader() {
       if (!loader) return;
@@ -735,7 +737,7 @@ function openWork(card) {
     // -------- MAIN INIT --------
     (async function init(){
       // 0) typing first
-      await typeText(loaderTextEl, LOADER_LINE, 90);
+      if (!skipIntro) await typeText(loaderTextEl, LOADER_LINE, 90);
 
       // 1) Load manifest (root manifest.json)
       let manifest;
@@ -880,7 +882,7 @@ let maxCardHeight = 0;
 let alignedCardScale = 1;
 const ALIGN_SCALE_BOOST = 1.22;
 
-const featuredIds = ["stzs77hykka", "cem", "sam_and_cem", "trailer", "outside2", "mood_conductor", "hand_tracking", "unknown_world"];
+const featuredIds = ["stzs77hykka", "cem", "sam_and_cem", "trailer", "outside2", "mood_conductor", "hand_tracking", "unknown_world", "second_loop", "machine_drawing"];
 
 // ❌ const 삭제하고 let만 사용
 let orderedWorks = priorityWorks.concat(otherWorks);
@@ -914,6 +916,12 @@ for (const featuredId of featuredIds.slice().reverse()) {
         if (index === 4) return new THREE.Vector3(-11.5, -7.2, FRONT_Z + 3.5);
         if (index === 5) return new THREE.Vector3(2.5, -9, FRONT_Z - 3); // Mood: below center
         if (index === 7) return new THREE.Vector3(-15, -1.5, FRONT_Z - 3); // Unknown World: left
+        if (index === 8) return new THREE.Vector3(-5, 6, FRONT_Z - 3); // Second Loop: behind Rorschach and CEM
+        if (index === 9) {
+          const soundCard = cards.find(card => card.userData.work.id === "hand_tracking");
+          const soundPosition = soundCard ? soundCard.position : new THREE.Vector3(9, 0, FRONT_Z);
+          return soundPosition.clone().add(new THREE.Vector3(8, 5, -3)); // Machine Drawing: offset above-right so it stays visible behind Sound in Your Hands
+        }
 
         const ang = index * 1.15;
         const rad = 3 + index * 1.3;
@@ -937,8 +945,8 @@ for (const featuredId of featuredIds.slice().reverse()) {
         const mat  = createMaterial(work);
 
         // Keep these neighboring featured cards from growing into each other on reload.
-        const spacedFeatured = i < frontCount && ["sam_and_cem", "trailer", "mood_conductor"].includes(work.id);
-        const h = spacedFeatured ? 4.7 : (6.5 + Math.random() * 6.5) * (9/16);
+        const spacedFeatured = i < frontCount && ["sam_and_cem", "trailer", "mood_conductor", "machine_drawing"].includes(work.id);
+        const h = work.id === "second_loop" ? 6 : spacedFeatured ? 4.7 : (6.5 + Math.random() * 6.5) * (9/16);
         const w = h * work.thumbAspect;
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
         maxCardWidth = Math.max(maxCardWidth, w);
@@ -962,6 +970,19 @@ for (const featuredId of featuredIds.slice().reverse()) {
 
         scene.add(mesh);
         cards.push(mesh);
+      }
+
+      // Exchange the opening positions while keeping each card's media and styling.
+      const machineDrawingCard = cards.find(card => card.userData.work.id === "machine_drawing");
+      const soundInYourHandsCard = cards.find(card => card.userData.work.id === "hand_tracking");
+      if (machineDrawingCard && soundInYourHandsCard) {
+        const machinePosition = machineDrawingCard.position.clone();
+        const soundPosition = soundInYourHandsCard.position.clone();
+        for (const [card, position] of [[machineDrawingCard, soundPosition], [soundInYourHandsCard, machinePosition]]) {
+          card.position.copy(position);
+          card.userData.base.copy(position);
+          card.userData.target.copy(position);
+        }
       }
 
       const seenWorkIds = new Set();
@@ -1183,8 +1204,10 @@ for (const featuredId of featuredIds.slice().reverse()) {
         }
       }
 
+      if (skipIntro) renderer.domElement.style.transition = "none";
       document.body.classList.add("revealed");
-      setTimeout(hideLoader, 700);
+      if (skipIntro) loader.remove();
+      else setTimeout(hideLoader, 700);
       initHandTracking();
 
       // 5) Look control (drag)
@@ -1424,7 +1447,9 @@ for (const featuredId of featuredIds.slice().reverse()) {
 
               const baseBright = THREE.MathUtils.lerp(1.0, 0.45, fade) * overlayDim * priorityBrightMul;
               const bright = isHover ? Math.min(1.15, baseBright + 0.25) : baseBright;
-              m.material.color.setScalar(bright);
+              const floatingBrightness = m.userData.work.id === "second_loop" ? 0.75
+                : m.userData.work.id === "machine_drawing" ? 0.8 : 1.0;
+              m.material.color.setScalar(bright * floatingBrightness);
             }
           }
 
