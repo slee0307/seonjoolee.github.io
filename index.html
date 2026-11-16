@@ -938,16 +938,17 @@ for (const featuredId of featuredIds.slice().reverse()) {
         return new THREE.Vector3(cx, cy, z);
       }
 
-      const leftSideCopies = [
+      const sideCopies = [
         { id: "partical", angle: -60, height: 3 },
-        { id: "machine_signal", angle: -85, height: -2 }
+        { id: "machine_signal", angle: -85, height: -2 },
+        { id: "ascii", angle: 90, height: 4 }
       ].filter(copy => orderedWorks.some(work => work.id === copy.id));
 
-      for (let i = 0; i < CARD_COUNT + leftSideCopies.length; i++){
+      for (let i = 0; i < CARD_COUNT + sideCopies.length; i++){
         // ✅ 1) orderedWorks 전체를 먼저 한 번씩 생성
         // ✅ 2) 남는 카드만 랜덤으로 채움
-        const leftCopy = leftSideCopies[i - CARD_COUNT];
-        const work = leftCopy ? orderedWorks.find(work => work.id === leftCopy.id)
+        const sideCopy = sideCopies[i - CARD_COUNT];
+        const work = sideCopy ? orderedWorks.find(work => work.id === sideCopy.id)
           : (i < orderedWorks.length) ? orderedWorks[i] : pickSurroundingWork(i - orderedWorks.length);
         const mat  = createMaterial(work);
 
@@ -960,11 +961,11 @@ for (const featuredId of featuredIds.slice().reverse()) {
         maxCardHeight = Math.max(maxCardHeight, h);
 
         // Preserve the featured composition; spread all remaining cards around the viewer.
-        const p = leftCopy
+        const p = sideCopy
           ? galleryCenter.clone().add(new THREE.Vector3(
-              Math.sin(THREE.MathUtils.degToRad(leftCopy.angle)) * 28,
-              leftCopy.height,
-              -Math.cos(THREE.MathUtils.degToRad(leftCopy.angle)) * 28
+              Math.sin(THREE.MathUtils.degToRad(sideCopy.angle)) * 28,
+              sideCopy.height,
+              -Math.cos(THREE.MathUtils.degToRad(sideCopy.angle)) * 28
             ))
           : (i < frontCount) ? frontPos(i) : surroundingPos(i - frontCount);
         mesh.position.copy(p);
