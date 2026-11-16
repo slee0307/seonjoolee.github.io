@@ -24,7 +24,7 @@
       "thumb": "assets/images/Map.jpg",
       "thumbAspect": 1.4142310018141504,
       "slides": ["Map.jpg"],
-      "description": ""
+      "description": "Second Loop — Drawing Studies\n\nMachine Self-Observation / Generative Drawing / Mapping\n\nThis study explores how a machine might construct an image of its own body through partial observations.\n\nA camera observes a physical structure defined as the machine's body. Because it cannot see the entire body from a single position, the camera changes its angle every ten seconds, attempting to capture different parts of its body. Each camera image is translated into contours, which gradually accumulate into a layered drawing.\n\nInspired by the concept of palimpsest, where new marks are layered over traces of the past, earlier contours fade into gray while new observations are added. Rather than replacing previous images, each new observation builds upon them, creating a visual record of the machine's repeated attempts to observe itself.\n\nThe resulting self-portrait is not a complete representation of the body, but a collection of partial views recorded over time.\n\nAlongside the drawing system, A Map of Partial Views visualizes the camera's observation positions, field of view, and blind spots, revealing how the machine's representation is shaped by what it can and cannot see.\n\nTogether, these experiments investigate the relationship between sensing, movement, and representation, asking how a machine might come to know its own body through repeated, incomplete observations."
     },
     {
       "id": "second_loop",
@@ -33,7 +33,7 @@
       "file": "Second_Loop.jpg",
       "thumb": "assets/images/Second_Loop.jpg",
       "thumbAspect": 0.6470588235294118,
-      "description": ""
+      "description": "Ongoing Research · 2026\n\nIf human self-reflection is the first loop, what might a second loop look like for machines?\n\nSecond Loop is an ongoing practice-based research project exploring the possibility of machine self-reflection through sensing, embodiment, and feedback.\n\nThe first loop refers to the human process of observing, interpreting, and reflecting on oneself. The second loop extends this process to machines, asking what happens when a machine turns its perception away from the external world and toward its own body.\n\nThrough experiments in self-observation, partial representations, and feedback, the project investigates how a machine's perception of its own body might influence its behavior, reshape its relationship to its original purpose, and challenge our understanding of self-awareness."
     },
     {
       "id": "sam_and_cem",
